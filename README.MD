@@ -24,7 +24,7 @@ docker run --gpus all -it \
 
 # Running pre-processing pipeline:
 
-To run the pipeline, make sure you place the dataset in this format. The video_split_*.pkl simple contains a list of file names of the videos.
+To run the pipeline, make sure you place the dataset in this format. The video_split_*.pkl simply contains a list of file names of the videos.
 
 ```
 /data/ravdess/
@@ -42,13 +42,13 @@ To integrate the facial reconstruction model into the pipeline, simply replace t
 Once the data + model are read. Run all of the code in /dataset_processing/ in sequence (step 1 - step 6) to obtain a processed dataset.
 
 
-# training code:
+# Training code:
 
-To train the MSMD model as specifid in the paper, first prepare both ravdess and celebv-text datasets using the pre-processing pipeline. Then run `training_spec.sh` to run the training loop with the specs used in the paper. Located inside `training_script.py`
+To train the MSMD model as specified in the paper, first prepare both ravdess and celebv-text datasets using the pre-processing pipeline. Then run `training_spec.sh` to run the training loop with the specs used in the paper. Located inside `training_script.py`
 
-# inference code:
+# Inference code:
 
-To generate outputs with the trained model, use `inference.py`. You must prepare an input audio file as a 16000hz wav file, as well as two pickle file containing the expression code and head rotation respectively. In addition, you must also prepare a pickfile that stores the statistics (mean and std of the expression code + head rotation for normalizing the data, with the following keys):
+To generate outputs with the trained model, use `inference.py`. You must prepare an input audio file as a 16000hz wav file, as well as two pickle file containing the expression code and head rotation respectively. In addition, you must also prepare a picke file that stores the statistics (mean and std of the expression code + head rotation for normalizing the data, with the following keys):
 
 - `exp_mean`: Mean values for expression coefficients (tensor)
 - `exp_std`: Standard deviation values for expression coefficients (tensor)
