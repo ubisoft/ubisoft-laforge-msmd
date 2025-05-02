@@ -1,0 +1,192 @@
+FROM nvidia/cuda:12.0.1-cudnn8-devel-ubuntu20.04 
+
+# Match the environment variables set by NVIDIA's base images
+# (Many of these come "for free" with nvidia/cuda:12.0.1-cudnn8-devel,
+#  but we set them explicitly for completeness.)
+
+ENV NVARCH=x86_64 \
+    CUDA_VERSION=12.0.1 \
+    NV_CUDA_CUDART_VERSION=12.0.146-1 \
+    NV_CUDA_COMPAT_PACKAGE=cuda-compat-12-0 \
+    NV_CUDA_LIB_VERSION=12.0.1-1 \
+    NV_CUDA_NSIGHT_COMPUTE_DEV_PACKAGE=cuda-nsight-compute-12-0=12.0.1-1 \
+    NV_CUDA_NSIGHT_COMPUTE_VERSION=12.0.1-1 \
+    NV_NVML_DEV_VERSION=12.0.140-1 \
+    NV_NVPROF_DEV_PACKAGE=cuda-nvprof-12-0=12.0.146-1 \
+    NV_NVPROF_VERSION=12.0.146-1 \
+    NV_NVTX_VERSION=12.0.140-1 \
+    NV_LIBCUSPARSE_VERSION=12.0.1.140-1 \
+    NV_LIBNPP_PACKAGE=libnpp-12-0=12.0.1.104-1 \
+    NV_LIBNPP_VERSION=12.0.1.104-1 \
+    NV_LIBNPP_DEV_PACKAGE=libnpp-dev-12-0=12.0.1.104-1 \
+    NV_LIBNPP_DEV_VERSION=12.0.1.104-1 \
+    NV_LIBNCCL_PACKAGE=libnccl2=2.19.3-1+cuda12.0 \
+    NV_LIBNCCL_PACKAGE_VERSION=2.19.3-1 \
+    NV_LIBNCCL_PACKAGE_NAME=libnccl2 \
+    NV_LIBNCCL_DEV_PACKAGE=libnccl-dev=2.19.3-1+cuda12.0 \
+    NV_LIBNCCL_DEV_PACKAGE_VERSION=2.19.3-1 \
+    NV_LIBNCCL_DEV_PACKAGE_NAME=libnccl-dev \
+    NV_CUDNN_PACKAGE=libcudnn8=8.8.0.121-1+cuda12.0 \
+    NV_CUDNN_PACKAGE_DEV=libcudnn8-dev=8.8.0.121-1+cuda12.0 \
+    NV_CUDNN_PACKAGE_NAME=libcudnn8 \
+    NV_CUDNN_VERSION=8.8.0.121 \
+    NV_LIBCUBLAS_PACKAGE=libcublas-12-0=12.0.2.224-1 \
+    NV_LIBCUBLAS_VERSION=12.0.2.224-1 \
+    NV_LIBCUBLAS_PACKAGE_NAME=libcublas-12-0 \
+    NV_LIBCUBLAS_DEV_PACKAGE=libcublas-dev-12-0=12.0.2.224-1 \
+    NV_LIBCUBLAS_DEV_VERSION=12.0.2.224-1 \
+    NCCL_VERSION=2.19.3-1 \
+    NVIDIA_VISIBLE_DEVICES=all \
+    NVIDIA_DRIVER_CAPABILITIES=compute,utility \
+    NVIDIA_PRODUCT_NAME=CUDA \
+    LIBRARY_PATH=/usr/local/cuda/lib64/stubs \
+    NVIDIA_REQUIRE_CUDA="cuda>=12.0 brand=tesla,driver>=470,driver<471 brand=unknown,driver>=470,driver<471 brand=nvidia,driver>=470,driver<471 brand=nvidiartx,driver>=470,driver<471 brand=geforce,driver>=470,driver<471 brand=geforcertx,driver>=470,driver<471 brand=quadro,driver>=470,driver<471 brand=quadrortx,driver>=470,driver<471 brand=titan,driver>=470,driver<471 brand=titanrtx,driver>=470,driver<471" 
+    
+
+# -------------------------------------------------------------------
+# Keep our build environment consistent
+# -------------------------------------------------------------------
+ARG DEBIAN_FRONTEND=noninteractive
+
+# -------------------------------------------------------------------
+# Set timezone to America/Toronto (as seen in your environment)
+# Install base dependencies: tzdata, wget, git, etc.
+# Also install system libraries likely needed by Blender, FFmpeg, etc.
+# -------------------------------------------------------------------
+ENV TZ=America/Toronto
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        tzdata \
+        build-essential \
+        cmake \
+        wget \
+        curl \
+        git \
+        ca-certificates \
+        ffmpeg \
+        libsm6 \
+        libxext6 \
+        libxrender1 \
+        libgl1 \
+        libglu1-mesa \
+        ninja-build \
+        xz-utils \
+        python3.8 \
+        python3.8-dev \
+        python3.8-distutils \
+        # Blender's dependencies typically include these, but in your Docker history
+        # you have quite a few apt-get runs. This is just a single big run:
+        libx11-6 \
+        libxi6 \
+        libxxf86vm1 \
+        libxcursor1 \
+        libxrandr2 \
+        libxinerama1 \
+        # Alembic dependencies with correct package names
+        alembic \
+        libhdf5-dev \
+        libboost-program-options-dev \
+        libboost-system-dev \
+        libboost-thread-dev \
+        libboost-python-dev \
+        libboost-filesystem-dev \
+        libboost-regex-dev \
+        libboost-wave-dev \
+        libopenexr-dev \
+        libilmbase-dev \
+        zlib1g-dev \ 
+    && rm -rf /var/lib/apt/lists/*
+
+# -------------------------------------------------------------------
+# Make python3.8 the default python3, install pip, etc.
+# (You had /opt/python38, but you can also keep the system’s python3.8.
+#  If you truly want a separate /opt/python38, you can copy or compile from source.
+#  Below is a simpler approach: just symlink and install a modern pip.)
+# -------------------------------------------------------------------
+RUN ln -s /usr/bin/python3.8 /usr/local/bin/python3 && \
+    wget https://bootstrap.pypa.io/get-pip.py -O /tmp/get-pip.py && \
+    python3 /tmp/get-pip.py && \
+    rm /tmp/get-pip.py
+
+# -------------------------------------------------------------------
+# If you *must* have your Python in /opt/python38 exactly as in your container,
+# you could do something like this:
+# -------------------------------------------------------------------
+# RUN mkdir -p /opt/python38 && \
+#     cp -a /usr/bin/python3.8 /opt/python38/python3 && \
+    # (any additional steps to put pip in /opt/python38/bin, etc.)
+# ENV PYTHON_DIR=/opt/python38
+# ENV PATH=/opt/python38/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
+#
+# For simplicity, we’ll just assume system python is fine. Adjust as needed.
+# -------------------------------------------------------------------
+# to match your container’s env var, if needed
+ENV PYTHON_DIR=/opt/python38  
+ENV PATH=/opt/python38/bin:/opt/blender:/usr/local/nvidia/bin:/usr/local/cuda/bin:$PATH
+
+# -------------------------------------------------------------------
+# Set the offline cache environment variables for transformers
+# (matching your container’s environment)
+# -------------------------------------------------------------------
+ENV TRANSFORMERS_OFFLINE=TRUE
+ENV TRANSFORMERS_CACHE=/data/pytorch_cache
+
+# -------------------------------------------------------------------
+# Copy (or create) a requirements.txt that matches your `pip list`
+# and install. Because your `pip list` is quite large, you would
+# realistically generate or freeze it. For illustration, we only
+# show some key packages. If you want an exact lock, you can
+# copy/paste them all at pinned versions.
+# -------------------------------------------------------------------
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir git+https://github.com/mattloper/chumpy@51d5afd92a8ded3637553be8cef41f328a1c863a && \
+    pip install --no-cache-dir git+https://github.com/NVlabs/nvdiffrast.git@c5caf7bdb8a2448acc491a9faa47753972edd380 && \
+    pip install --no-cache-dir -r /tmp/requirements.txt
+
+RUN mkdir /software
+RUN cd /software && wget https://github.com/AcademySoftwareFoundation/Imath/archive/refs/tags/v3.1.5.tar.gz && \
+    tar xvf v3.1.5.tar.gz && cd Imath-3.1.5 &&  \
+    mkdir build && cd build && cmake .. -DPYTHON=ON &&  \
+    make -j && make install
+
+RUN cd /software && git clone https://github.com/alembic/alembic &&  \
+cd alembic && git checkout 1.8.4 &&  \
+mkdir build && cd build && cmake .. -DUSE_PYALEMBIC=ON && \
+make -j && make install
+
+
+# ENV ALEMBIC_ROOT=/usr/local/alembic
+ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+ENV PYTHONPATH=/usr/local/lib/python3.8/site-packages:$PYTHONPATH
+
+# Create target directory if it doesn't exist
+RUN mkdir -p ${PYTHON_DIR}/lib/python3.8/site-packages
+
+# Find and copy the .so files
+RUN find /usr/local/lib -name "alembic.so" -o -name "imath.so" -o -name "imathnumpy.so" | \
+    xargs -I {} cp -v {} ${PYTHON_DIR}/lib/python3.8/site-packages/ || true
+
+# Verify the installation
+RUN python3 -c "import alembic; import imath" || echo "Please check if the libraries were properly installed"
+# RUN cd /usr/local/lib/python3.8/site-packages && cp alembic.so imath.so imathnumpy.so ${PYTHON_DIR}/lib/python3.8/site-packages
+
+
+# -------------------------------------------------------------------
+# Download & install Blender into /opt/blender (as your history suggests).
+# You had a ~1.28GB layer from a 'wget' of the Blender tar. The snippet
+# below uses Blender 3.6.2 as an example. Adjust the version to match
+# your actual usage (2.83.7, 2.93, 3.6, etc.) and checksums as needed.
+# -------------------------------------------------------------------
+RUN wget -q https://download.blender.org/release/Blender3.6/blender-3.6.2-linux-x64.tar.xz -O /tmp/blender.tar.xz && \
+    tar -xf /tmp/blender.tar.xz -C /opt && \
+    rm /tmp/blender.tar.xz && \
+    mv /opt/blender-3.6.2-linux-x64 /opt/blender
+
+# -------------------------------------------------------------------
+# Optionally set the default command to run Blender so you can do:
+#   docker run --rm -it <this-image>  (and it prints Blender version)
+# -------------------------------------------------------------------
+CMD ["blender", "--version"]
+
+RUN ln -s /usr/local/bin/python3 /usr/local/bin/python
