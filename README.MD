@@ -58,7 +58,7 @@ To generate outputs with the trained model, use `inference.py`. You must prepare
 An example input looks like this:
 
 ```
-python generate_talking_head.py \
+python inference.py \
   --model_root /path/to/models \
   --model_name MODEL_NAME \
   --model_iter ITERATION_NUMBER \
