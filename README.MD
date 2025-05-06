@@ -1,3 +1,5 @@
+© [2025] Ubisoft Entertainment. All Rights Reserved
+
 # Model See Model Do: Speech-Driven Facial Animation with Style Control
 
 # Overview:
@@ -75,3 +77,4 @@ The script generates:
 1. Normalized expression coefficients (.pkl file)
 2. Normalized head rotation parameters (.pkl file)
 These outputs can be used with FLAME or similar 3D face models to render the final animated face video. You would need to implement your own. 
+© [2025] Ubisoft Entertainment. All Rights Reserved
